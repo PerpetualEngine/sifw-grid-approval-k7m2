@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
+<title>SIFW Grid Approval</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=DM+Sans:wght@400;500;700&display=swap">
+<style>
+/* Layout: overview of the finished grid, then one card per post (image, caption, approve / change, note), verdict box at the end. */
+:root{
+  --bg:#141413; --surface:#1d1d1b; --line:#33322f; --fg:#ecebe7; --muted:#a09e95;
+  --ok:#C9F57E; --okink:#151312; --chip:#262624;
+  --display:'Cormorant Garamond',Georgia,serif; --ui:'DM Sans',system-ui,sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#efeeea; --surface:#fbfaf7; --line:#d7d5cd; --fg:#1b1b19; --muted:#6c6a62; --chip:#e4e2db; color-scheme:light}}
+:root[data-theme="light"]{--bg:#efeeea; --surface:#fbfaf7; --line:#d7d5cd; --fg:#1b1b19; --muted:#6c6a62; --chip:#e4e2db; color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--ui);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:0 72px}
+.wrap{max-width:1100px;margin:0 auto}
+header{padding-block:30px 10px}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(32px,5vw,46px);margin:0 0 8px}
+.lede{color:var(--muted);margin:0;max-width:62ch;font-size:16px}
+.overview{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;padding-block:22px}
+.overview img{width:min(100%,300px);height:auto;border-radius:6px;display:block}
+.overview .txt{flex:1;min-width:240px;max-width:52ch}
+.overview h2{font-family:var(--display);font-weight:600;font-size:26px;margin:0 0 6px}
+.overview p{margin:0 0 10px;color:var(--muted)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{font:inherit;font-size:13px;background:var(--chip);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer}
+.chip b{font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.chip.on{outline:2px solid var(--fg)}
+.spacer{flex:1}
+.act.alt{background:var(--chip);color:var(--fg);border:1px solid var(--line)}
+.act{font:inherit;font-size:13px;font-weight:700;background:var(--ok);color:var(--okink);border:0;border-radius:6px;padding:8px 14px;cursor:pointer}
+button:focus-visible,textarea:focus-visible,.v:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:30px 18px;padding-top:24px}
+.card{display:flex;flex-direction:column;gap:10px;min-width:0}
+.card[hidden]{display:none!important}
+.ph{position:relative;aspect-ratio:4/5;background:var(--surface);border-radius:6px;overflow:hidden}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.card.ok .ph{outline:4px solid var(--ok);outline-offset:-4px}
+.card.chg .ph{opacity:.55}
+.tag{position:absolute;left:8px;top:8px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;padding:2px 9px;border-radius:999px;font-variant-numeric:tabular-nums}
+.cap{margin:0;white-space:pre-line;font-size:14px}
+.cap small{display:block;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-size:11px;margin-bottom:3px}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.v{font:inherit;font-weight:500;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:9px 6px;cursor:pointer}
+.v[aria-pressed="true"][data-v="ok"]{background:var(--ok);border-color:var(--ok);color:var(--okink)}
+.v[aria-pressed="true"][data-v="chg"]{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+textarea{font:inherit;font-size:14px;width:100%;min-height:44px;resize:vertical;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px}
+textarea::placeholder{color:var(--muted)}
+.sv{font-size:12px;color:var(--muted);min-height:15px}
+.out{margin-top:36px;border-top:1px solid var(--line);padding-top:18px}
+.out h2{font-family:var(--display);font-weight:600;font-size:26px;margin:0 0 8px}
+#verdict{min-height:150px;font:12px/1.5 ui-monospace,Menlo,monospace}
+.note{color:var(--muted);font-size:13px;margin:10px 0 0;max-width:70ch}
+.empty{color:var(--muted);padding:30px 0}
+</style>
+<body>
+<div class="wrap">
+<header>
+  <h1>SIFW Grid Approval</h1>
+  <p class="lede">Hi Maanee. This is the Instagram grid we built from your words. Tap <b>Approve</b> on each post you like. If something is not right, tap <b>Change</b> and tell us what you would like instead.</p>
+</header>
+<div class="bar" id="bar">
+  <button class="chip" data-f="todo">not reviewed <b id="n-todo">0</b></button>
+  <button class="chip" data-f="ok">approved <b id="n-ok">0</b></button>
+  <button class="chip" data-f="chg">change <b id="n-chg">0</b></button>
+  <span class="spacer"></span>
+  <button class="act" id="copy">Copy verdict</button>
+  <button class="act alt" id="mail">Email to Eric</button>
+  <button class="act alt" id="wa">Send on WhatsApp</button>
+</div>
+<div class="overview">
+  <img src="img/grid.jpg" alt="The finished 24-image grid, 3 images across">
+  <div class="txt">
+    <h2>The whole grid</h2>
+    <p>11 posts carry one of your words from your own grid. The other 13 are photos. Each post has a short caption made only of sentences from your pages.</p>
+    <p>When you are done, press <b>Send on WhatsApp</b> or <b>Email to Eric</b>, or <b>Copy verdict</b> to paste it anywhere.</p>
+  </div>
+</div>
+<main class="grid" id="grid"></main>
+<div class="out">
+  <h2>Anything else?</h2>
+  <textarea id="general" placeholder="Anything you would like to say about the grid as a whole"></textarea>
+  <div class="sv" id="gsv"></div>
+  <textarea id="verdict" readonly placeholder="Your verdict appears here after you press Copy verdict." style="margin-top:14px"></textarea>
+  <p class="note" id="where"></p>
+</div>
+</div>
+<script>
+const ITEMS = [{"n":1,"src":"img/t01.jpg","word":"ORGANIC","cap":"The Organic Feminine Principle is the compass that guides us towards our natural embodiment.\n\nIt encourages a rekindling of connection and trust in our cyclical nature, recognizing the messages of our nervous systems, and valuing our sensations and emotions as crucial sources of guidance and information."},{"n":2,"src":"img/t02.jpg","word":null,"cap":"Women have the power to breathe life into our disembodied and disconnected world."},{"n":3,"src":"img/t03.jpg","word":"FEMININE","cap":"Where we re-invite the fierce, loving, nurturing, wild force of the feminine back into a world that so deeply needs it.\n\nBeing free, embodied, and fully alive in our bodies as women is our birthright."},{"n":4,"src":"img/t04.jpg","word":null,"cap":"Sensuality is for every woman in any season of her life."},{"n":5,"src":"img/t05.jpg","word":"SILENCE","cap":"Becoming an embodied female leader starts with closing your eyes, taking a deep breath and learning to trust your own body wisdom.\n\nYou've been waiting for permission to come home to your body."},{"n":6,"src":"img/t06.jpg","word":null,"cap":"Women at any stage of their life."},{"n":7,"src":"img/t07.jpg","word":"ALIVENESS","cap":"One of the greatest acts of liberation for a woman is reclaiming responsibility for her own aliveness.\n\nReclaim your sensuality, aliveness, and relationship with your body."},{"n":8,"src":"img/t08.jpg","word":null,"cap":"Where the hidden, rejected & orphaned parts of ourselves live."},{"n":9,"src":"img/t09.jpg","word":"SOMA","cap":"Help women to feel safe to embody their somatic feminine sovereignty.\n\nAt its heart, the Organic Feminine Principle is about embracing our innate somatic feminine intelligence."},{"n":10,"src":"img/t10.jpg","word":null,"cap":"We will learn how to slow down, listen, feel, sense, inhabit & be in contact with the deepest parts of ourselves."},{"n":11,"src":"img/t11.jpg","word":"SLOW","cap":"Learn the gift of feeling safe to feel, slow down & harness the power in our unguarded vulnerability as a form of profound, embodied leadership.\n\nA space devoted to remembering the sensuous woman in her organic expression."},{"n":12,"src":"img/t12.jpg","word":null,"cap":"Sensuality is your birthright."},{"n":13,"src":"img/t13.jpg","word":"BREATH","cap":"Sensuality is the capacity to feel, to be present in your skin, alive to texture and temperature, awake to your own breath.\n\nWe also explore breath, touch, sound, and movement as gateways to deepening self-connection."},{"n":14,"src":"img/t14.jpg","word":null,"cap":"This capacity was yours before anyone told you what your body should look like. It's yours still."},{"n":15,"src":"img/t15.jpg","word":"LISTEN","cap":"A remembering of what it means to be free in our bodies as women.\n\nThe organic feminine invites women to slow down, feel and listen to what is true, beyond what we are told is true from the outside."},{"n":16,"src":"img/t16.jpg","word":null,"cap":"A way of inhabiting aliveness."},{"n":17,"src":"img/t17.jpg","word":"FEEL","cap":"Can I allow myself to feel again?\n\nReclaim your natural, embodied aliveness as a woman."},{"n":18,"src":"img/t18.jpg","word":null,"cap":"Reclaim the wild, natural tapestry that is life in a woman's body."},{"n":19,"src":"img/t19.jpg","word":"BODY","cap":"We will invite the move from objectification of the body to inhabitation of the body.\n\nLearning to trust your own body wisdom."},{"n":20,"src":"img/t20.jpg","word":null,"cap":"Sensuality is the capacity to feel."},{"n":21,"src":"img/t21.jpg","word":"SENSUAL","cap":"It invites us to celebrate our sensuality as a profound, life-affirming force that connects us deeply with ourselves, our community, and the world around us.\n\nIt belongs to the woman in perimenopause. The woman in grief. The woman rebuilding after heartbreak. The woman recovering from years of self-abandonment."},{"n":22,"src":"img/t22.jpg","word":null,"cap":"Return to a natural, embodied and truthful way of living."},{"n":23,"src":"img/t23.jpg","word":null,"cap":"A felt sense of wholeness & fulfillment."},{"n":24,"src":"img/t24.jpg","word":null,"cap":"Trust in our cyclical nature."}];
+let fb = {}, filt = {}, dbc = null, canSave = false, general = '';
+const LS = 'sifw-grid-approval';
+try { const o = JSON.parse(localStorage.getItem(LS) || '{}') || {}; fb = o.fb || {}; general = o.general || ''; } catch (e) {}
+function persist() { try { localStorage.setItem(LS, JSON.stringify({fb: fb, general: general})); } catch (e) {} }
+const id2 = function (n) { return 'p' + String(n).padStart(2, '0'); };
+
+const grid = document.getElementById('grid'); const cards = {};
+ITEMS.forEach(function (it) {
+  const c = document.createElement('div'); c.className = 'card';
+  c.innerHTML = '<div class="ph"><img loading="lazy" alt=""><span class="tag"></span></div>' +
+    '<p class="cap"><small></small><span class="t"></span></p>' +
+    '<div class="vs"><button class="v" data-v="ok" aria-pressed="false">Approve</button><button class="v" data-v="chg" aria-pressed="false">Change</button></div>' +
+    '<textarea rows="1" placeholder="What would you like changed? (optional)"></textarea><div class="sv"></div>';
+  c.querySelector('img').src = it.src;
+  c.querySelector('img').alt = 'Post ' + it.n + (it.word ? ', word ' + it.word : ', photo');
+  c.querySelector('.tag').textContent = 'Post ' + it.n;
+  c.querySelector('small').textContent = it.word ? 'Word: ' + it.word : 'Photo';
+  c.querySelector('.t').textContent = it.cap;
+  c.querySelectorAll('.v').forEach(function (b) {
+    b.addEventListener('click', function () {
+      const cur = (fb[id2(it.n)] || {}).v;
+      setFb(it.n, {v: cur === b.dataset.v ? '' : b.dataset.v});
+    });
+  });
+  const ta = c.querySelector('textarea'); let t = null;
+  ta.addEventListener('input', function () { clearTimeout(t); t = setTimeout(function () { setFb(it.n, {note: ta.value}); }, 600); });
+  ta.addEventListener('blur', function () { clearTimeout(t); if (((fb[id2(it.n)] || {}).note || '') !== ta.value) setFb(it.n, {note: ta.value}); });
+  cards[id2(it.n)] = {el: c, ta: ta, sv: c.querySelector('.sv'), it: it};
+  grid.appendChild(c);
+});
+const gen = document.getElementById('general'); gen.value = general; let gt = null;
+gen.addEventListener('input', function () { clearTimeout(gt); gt = setTimeout(saveGeneral, 700); });
+gen.addEventListener('blur', function () { clearTimeout(gt); if (gen.value !== general) saveGeneral(); });
+function saveGeneral() {
+  general = gen.value; persist();
+  const sv = document.getElementById('gsv');
+  sv.textContent = 'Saved on this device';
+}
+function paintAll() {
+  const active = Object.keys(filt).filter(function (k) { return filt[k]; });
+  let todo = 0, ok = 0, chg = 0;
+  ITEMS.forEach(function (it) {
+    const c = cards[id2(it.n)], d = fb[id2(it.n)] || {}, v = d.v || '';
+    if (!v) todo++; if (v === 'ok') ok++; if (v === 'chg') chg++;
+    c.el.classList.toggle('ok', v === 'ok'); c.el.classList.toggle('chg', v === 'chg');
+    c.el.querySelectorAll('.v').forEach(function (b) { b.setAttribute('aria-pressed', String(v === b.dataset.v)); });
+    if (document.activeElement !== c.ta) c.ta.value = d.note || '';
+    c.el.hidden = active.length > 0 && active.indexOf(v || 'todo') < 0;
+  });
+  document.getElementById('n-todo').textContent = todo; document.getElementById('n-ok').textContent = ok; document.getElementById('n-chg').textContent = chg;
+  document.querySelectorAll('.chip').forEach(function (ch) { ch.classList.toggle('on', !!filt[ch.dataset.f]); });
+  const vis = ITEMS.some(function (i) { return !cards[id2(i.n)].el.hidden; });
+  let e = document.getElementById('emptymsg');
+  if (!vis && !e) { e = document.createElement('p'); e.id = 'emptymsg'; e.className = 'empty'; e.textContent = 'Nothing here yet.'; grid.after(e); }
+  if (vis && e) e.remove();
+}
+function setFb(n, patch) {
+  const k = id2(n), d = Object.assign({v: '', note: ''}, fb[k] || {}, patch);
+  fb[k] = d; paintAll(); persist();
+  const sv = cards[k].sv;
+  sv.textContent = 'Saved on this device'; setTimeout(function () { if (sv.textContent === 'Saved on this device') sv.textContent = ''; }, 1500);
+}
+document.getElementById('bar').addEventListener('click', function (e) {
+  const b = e.target.closest('.chip'); if (!b) return; filt[b.dataset.f] = !filt[b.dataset.f]; paintAll();
+});
+function buildVerdict() {
+  const pick = function (v) { return ITEMS.filter(function (i) { return (fb[id2(i.n)] || {}).v === v; }).map(function (i) { return i.n; }).join(', ') || 'none'; };
+  const notes = ITEMS.filter(function (i) { return ((fb[id2(i.n)] || {}).note || '').trim(); }).map(function (i) { return 'Post ' + i.n + ': ' + fb[id2(i.n)].note.trim(); });
+  if (gen.value.trim()) notes.push('General: ' + gen.value.trim());
+  return 'SIFW GRID VERDICT\napproved: ' + pick('ok') + '\nchange: ' + pick('chg') + '\nnotes:\n' + (notes.join('\n') || 'none');
+}
+document.getElementById('copy').addEventListener('click', function () {
+  const txt = buildVerdict(); const ta = document.getElementById('verdict'); ta.value = txt;
+  const btn = document.getElementById('copy');
+  const done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy verdict'; }, 1800); };
+  const sel = function () { ta.focus(); ta.select(); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, sel); else sel();
+});
+paintAll();
+document.getElementById('mail').addEventListener('click', function () { const t = buildVerdict(); document.getElementById('verdict').value = t; window.location.href = 'mailto:eric@perpetualnurture.com?subject=' + encodeURIComponent('SIFW grid verdict') + '&body=' + encodeURIComponent(t); });
+document.getElementById('wa').addEventListener('click', function () { const t = buildVerdict(); document.getElementById('verdict').value = t; window.location.href = 'https://wa.me/?text=' + encodeURIComponent(t); });
+document.getElementById('where').textContent = 'Your answers are saved on this device while you work. When you are done, send them to Eric with one of the buttons above.';
+
+</script>
+</body></html>
